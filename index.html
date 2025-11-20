@@ -61,7 +61,7 @@
                 abstract: {
                     title: "Hear Diverse Voices",
                     subtitle: "A Systematic Literature Review Using Computational Approaches to Explore Asia-Pacific Perspectives in Global DEI Research",
-                    body: "This study systematically reviews 534 peer-reviewed journal articles on Diversity, Equity, and Inclusion (DEI) published between 2015 and 2025/6. Using BERTopic modeling, it reveals that the global DEI discourse remains dominated by Western perspectives, while the unique voices of the Asia-Pacific region—focusing on organizational strategy and leadership—have long been overlooked.",
+                    body: "With labor shortages and workforce diversity on the rise, organizations are under pressure to foster collaboration among individuals from varied backgrounds. DEI (Diversity, Equity, and Inclusion) plays a vital role by promoting environments that not only accept but also value individual differences. This study systematically reviews DEI research across the fields of business, management, and social sciences. In accordance with PRISMA guidelines, 534 peer-reviewed journal articles published between 2015 and June 2025 were retrieved from Scopus, including only those indexed in the Social Sciences Citation Index (SSCI). To explore hidden patterns and emerging trends, the selected articles were subjected to topic modeling with BERTopic. Although DEI research is expanding globally, the cross-analysis reveals that Asia-Pacific perspectives remain underrepresented. Dominant topics such as DEI statements, equity training, and leadership are often framed by Western viewpoints, with minimal integration of regional contexts. To bridge the gap between principles and practice, this study points to culturally responsive strategies as key enablers of inclusive implementation. The findings call for greater efforts to hear and respond to Asia-Pacific voices in ways that are locally grounded and globally relevant.",
                     stats: { articles: "Articles", time: "Time Span", method: "Method", db: "Database" }
                 },
                 method: {
@@ -83,9 +83,9 @@
                 },
                 logic: {
                     step1: "The Entity", step1Desc: "The graph begins with a single academic paper. This node acts as the anchor, containing metadata like title (A0003), year, and abstract.",
-                    step2: "Semantic Extraction", step2Desc: "We parse the text to extract high-level concepts. The paper is linked to a 'Main Topic' (Sectoral Practice) and a specific 'Sub-Topic'.",
+                    step2: "Semantic Extraction", step2Desc: "Parse the text to extract high-level concepts. The paper is linked to a 'Main Topic' (Sectoral Practice) and a specific 'Sub-Topic'.",
                     step3: "Concept Mapping", step3Desc: "Granular details are mapped. We identify the Research Method, applied Theories, and specific Keywords, creating a unique semantic fingerprint.",
-                    step4: "Network Synthesis", step4Desc: "The 'Aha!' moment. A second paper (A0007) enters the system. It connects to the *same* Main Topic. This shared connection physically pulls the papers together, forming a cluster.",
+                    step4: "Network Synthesis", step4Desc: "A second paper (A0007) enters the system. It connects to the same Main Topic. This shared connection physically pulls the papers together, forming a cluster.",
                     step5: "Full Expansion", step5Desc: "Scaling up. By applying this logic to the entire dataset, hundreds of papers, topics, and concepts interconnect. This creates the complete, navigable DEI Knowledge Graph.",
                     cluster: "Cluster Formed",
                     network: "Full Network Active",
@@ -113,7 +113,7 @@
                 abstract: {
                     title: "多様な声を聴く (Hear Diverse Voices)",
                     subtitle: "グローバルDEI研究におけるアジア太平洋視点の再発見コンピュータ支援による系統的文献レビューを通じた",
-                    body: "本研究は、2015年から2025年6月までに発表されたDEI（多様性・公平性・包摂性）に関する査読付き論文534本を体系的にレビューしました。BERTopicモデリングを用いた分析の結果、グローバルなDEIの言説は依然として西洋の視点に支配されており、組織戦略やリーダーシップに焦点を当てたアジア太平洋地域のユニークな声が長らく見過ごされてきたことが明らかになりました。",
+                    body: "労働力不足と人材の多様化が進むなか、組織には異なる背景をもつ個人同士の協働を促進することが求められています。DEI（Diversity, Equity, and Inclusion：多様性・公平性・包摂性）は、個々の違いを受け入れるだけでなく価値あるものとして尊重する環境づくりにおいて重要な役割を果たします。 本研究は、経営学、マネジメント、社会科学の分野における DEI 研究を対象に、体系的レビューを行ったものです。PRISMA ガイドラインに基づき、2015 年から 2025 年 6 月までに出版された SSCI（Social Sciences Citation Index）収録の査読付き論文 534 件を Scopus から抽出しました。潜在的なパターンや新たな潮流を探るため、選定した論文に BERTopic を用いたトピックモデル分析を実施しました。 DEI 研究は世界的に拡大しているものの、クロス分析の結果、アジア太平洋地域の視点は依然として十分に反映されていないことが明らかになりました。DEI ステートメント、エクイティ研修、リーダーシップなどの主要トピックは、依然として欧米の枠組みによって語られる傾向が強く、地域文脈の統合は最小限にとどまっています。 原則と実践のギャップを埋めるためには、文化的文脈に配慮したアプローチが、インクルーシブな取り組みを支える重要な要素となります。本研究の知見は、アジア太平洋地域の声を地域に根ざしつつ世界的にも意味をもつかたちで捉え、反映させる必要性を強く示唆しています。",
                     stats: { articles: "分析対象", time: "期間", method: "手法", db: "データベース" }
                 },
                 method: {
@@ -137,7 +137,7 @@
                     step1: "エンティティ (The Entity)", step1Desc: "グラフは1つの学術論文から始まります。このノードはアンカーとして機能し、タイトル(A0003)、年、要旨などのメタデータを含みます。",
                     step2: "意味抽出 (Semantic Extraction)", step2Desc: "テキストを解析して高レベルの概念を抽出します。論文は「メイントピック」（分野別実践）と特定の「サブトピック」にリンクされます。",
                     step3: "概念マッピング (Concept Mapping)", step3Desc: "詳細な情報がマッピングされます。研究手法、適用された理論、特定のキーワードを特定し、独自の意味論的指紋（セマンティック・フィンガープリント）を作成します。",
-                    step4: "ネットワーク合成 (Network Synthesis)", step4Desc: "「アハ！」モーメントです。2つ目の論文(A0007)がシステムに入ります。これが*同じ*メイントピックに接続されます。この共有された接続が論文同士を物理的に引き寄せ、クラスターを形成します。",
+                    step4: "ネットワーク合成 (Network Synthesis)", step4Desc: "2つ目の論文(A0007)がシステムに入ります。これが同じメイントピックに接続されます。この共有された接続が論文同士を物理的に引き寄せ、クラスターを形成します。",
                     step5: "完全な拡張 (Full Expansion)", step5Desc: "スケールアップです。このロジックをデータセット全体に適用することで、数百の論文、トピック、概念が相互に接続されます。これにより、ナビゲート可能な完全なDEIナレッジグラフが作成されます。",
                     cluster: "クラスター形成",
                     network: "全ネットワーク稼働",
