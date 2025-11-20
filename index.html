@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hear Diverse Voices: Interactive Paper Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; background-color: #f8fafc; }
+        .slide-in { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-tooltip {
+            pointer-events: none;
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        /* KG Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-bounce-slow {
+            animation: float 3s ease-in-out infinite;
+        }
+        .animate-pulse-ring-once {
+            animation: pulse-scale 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) 1 forwards;
+            transform-origin: center;
+        }
+        @keyframes pulse-scale {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- Translations Database ---
+        const TEXT = {
+            en: {
+                title: "DEI Research Visualizer",
+                subtitle: "Based on the paper by Shiang-Mei Yu",
+                tabs: { abstract: "Abstract", method: "Method", logic: "KG Logic", results: "Results", conclusion: "Conclusion", feedback: "Feedback" },
+                abstract: {
+                    title: "Hear Diverse Voices",
+                    subtitle: "A Systematic Literature Review Using Computational Approaches to Explore Asia-Pacific Perspectives in Global DEI Research",
+                    body: "This study systematically reviews 534 peer-reviewed journal articles on Diversity, Equity, and Inclusion (DEI) published between 2015 and 2025/6. Using BERTopic modeling, it reveals that the global DEI discourse remains dominated by Western perspectives, while the unique voices of the Asia-Pacific region—focusing on organizational strategy and leadership—have long been overlooked.",
+                    stats: { articles: "Articles", time: "Time Span", method: "Method", db: "Database" }
+                },
+                method: {
+                    title: "Methodology: PRISMA Flow Diagram",
+                    desc: "Methodological Highlights:",
+                    body: "This study combines traditional \"manual coding\" (for theory, method, and country) with modern \"computational text analysis\" (BERTopic v0.036). Using the BAAI/bge-base-en embedding model and the HDBSCAN clustering algorithm, it successfully extracted 24 sub-topics from 534 abstracts and categorized them into 5 core main topics (with 11% classified as outliers)."
+                },
+                results: {
+                    trendTitle: "Trend: Exponential Growth (2015-2025/6)",
+                    trendNote: "Key Inflection Point: 2020 (COVID-19 & George Floyd)",
+                    geoTitle: "Geographical Bias: The Western Gaze",
+                    geoNote1: "83.9% of research comes from the West.",
+                    geoNote2: "Asia accounts for only 8.2%.",
+                    geoKeyFinding: "Key Finding",
+                    geoBody: "Asian research shows high \"localization.\" While the West focuses on Identity Politics (T3), 41% of Asian scholars focus on Organizational Core (T2).",
+                    topicTitle: "BERTopic Analysis: The 5 Pillars",
+                    topicClick: "Click on bubbles to view details",
+                    focus: "Focus Region/Feature"
+                },
+                logic: {
+                    step1: "The Entity", step1Desc: "The graph begins with a single academic paper. This node acts as the anchor, containing metadata like title (A0003), year, and abstract.",
+                    step2: "Semantic Extraction", step2Desc: "We parse the text to extract high-level concepts. The paper is linked to a 'Main Topic' (Sectoral Practice) and a specific 'Sub-Topic'.",
+                    step3: "Concept Mapping", step3Desc: "Granular details are mapped. We identify the Research Method, applied Theories, and specific Keywords, creating a unique semantic fingerprint.",
+                    step4: "Network Synthesis", step4Desc: "The 'Aha!' moment. A second paper (A0007) enters the system. It connects to the *same* Main Topic. This shared connection physically pulls the papers together, forming a cluster.",
+                    step5: "Full Expansion", step5Desc: "Scaling up. By applying this logic to the entire dataset, hundreds of papers, topics, and concepts interconnect. This creates the complete, navigable DEI Knowledge Graph.",
+                    cluster: "Cluster Formed",
+                    network: "Full Network Active",
+                    back: "Back",
+                    next: "Next Step",
+                    replay: "Replay Sequence"
+                },
+                conclusion: {
+                    c1Title: "Conclusion 1: Epistemological Localization",
+                    c1Body: "Global DEI research is not monolithic. The West prefers \"T3: Identity Lens\" (e.g., race, gender rights), reflecting its individualistic and social justice traditions. The Asia-Pacific prefers \"T2: Organizational Core,\" reflecting collectivism and hierarchy. This is not lagging behind, but a culturally pragmatic strategy.",
+                    c2Title: "Conclusion 2: The Digital Gap",
+                    c2Body: "\"T5: Emerging Challenges\" (Tech & Language Bias) is the smallest topic. More dangerously, the Asia-Pacific region—most vulnerable to algorithmic and linguistic hegemony—has produced 0% of the research on this topic. This is a dual gap that urgently needs filling.",
+                    futureTitle: "Future Directions",
+                    futureBody: "True inclusion means not \"replicating\" Western voices in Asia, but \"listening\" to and validating Asia's unique organization-centric DEI model. Meanwhile, Asian scholars must shift from applying Western theories to developing \"Grounded Theories\" and urgently invest in technological inclusion research."
+                },
+                feedback: {
+                    title: "Your Feedback",
+                    desc: "Please fill out the form below to share your thoughts, questions, or contact information."
+                }
+            },
+            jp: {
+                title: "DEI研究ビジュアライザー",
+                subtitle: "Shiang-Mei Yuの論文に基づく",
+                tabs: { abstract: "要旨 (Abstract)", method: "手法 (Method)", logic: "KGロジック", results: "結果 (Results)", conclusion: "結論 (Conclusion)", feedback: "フィードバック" },
+                abstract: {
+                    title: "多様な声を聴く (Hear Diverse Voices)",
+                    subtitle: "グローバルDEI研究におけるアジア太平洋視点の再発見コンピュータ支援による系統的文献レビューを通じた",
+                    body: "本研究は、2015年から2025年6月までに発表されたDEI（多様性・公平性・包摂性）に関する査読付き論文534本を体系的にレビューしました。BERTopicモデリングを用いた分析の結果、グローバルなDEIの言説は依然として西洋の視点に支配されており、組織戦略やリーダーシップに焦点を当てたアジア太平洋地域のユニークな声が長らく見過ごされてきたことが明らかになりました。",
+                    stats: { articles: "分析対象", time: "期間", method: "手法", db: "データベース" }
+                },
+                method: {
+                    title: "方法論：PRISMAフロー図",
+                    desc: "方法論のハイライト：",
+                    body: "本研究は、伝統的な「用手符号化」（理論、方法、国別）と現代的な「計算論的テキスト分析」（BERTopic v0.036）を組み合わせています。BAAI/bge-base-en埋め込みモデルとHDBSCANクラスタリングアルゴリズムを使用し、534の要旨から24のサブトピックを抽出し、5つの核心的なメイントピックに分類することに成功しました（11％は外れ値として分類）。"
+                },
+                results: {
+                    trendTitle: "トレンド：指数関数的な成長 (2015-2025/6)",
+                    trendNote: "重要な転換点：2020年 (COVID-19 & George Floyd事件)",
+                    geoTitle: "地理的バイアス：西洋の眼差し",
+                    geoNote1: "研究の83.9%は欧米由来です。",
+                    geoNote2: "アジアはわずか8.2%に過ぎません。",
+                    geoKeyFinding: "主要な発見",
+                    geoBody: "アジアの研究は高い「ローカリゼーション（現地化）」を示しています。西洋がアイデンティティ政治(T3)に焦点を当てる一方で、アジアの研究者の41%は組織の核心(T2)に焦点を当てています。",
+                    topicTitle: "BERTopic分析：5つの柱",
+                    topicClick: "バブルをクリックして詳細を表示",
+                    focus: "焦点となる地域/特徴"
+                },
+                logic: {
+                    step1: "エンティティ (The Entity)", step1Desc: "グラフは1つの学術論文から始まります。このノードはアンカーとして機能し、タイトル(A0003)、年、要旨などのメタデータを含みます。",
+                    step2: "意味抽出 (Semantic Extraction)", step2Desc: "テキストを解析して高レベルの概念を抽出します。論文は「メイントピック」（分野別実践）と特定の「サブトピック」にリンクされます。",
+                    step3: "概念マッピング (Concept Mapping)", step3Desc: "詳細な情報がマッピングされます。研究手法、適用された理論、特定のキーワードを特定し、独自の意味論的指紋（セマンティック・フィンガープリント）を作成します。",
+                    step4: "ネットワーク合成 (Network Synthesis)", step4Desc: "「アハ！」モーメントです。2つ目の論文(A0007)がシステムに入ります。これが*同じ*メイントピックに接続されます。この共有された接続が論文同士を物理的に引き寄せ、クラスターを形成します。",
+                    step5: "完全な拡張 (Full Expansion)", step5Desc: "スケールアップです。このロジックをデータセット全体に適用することで、数百の論文、トピック、概念が相互に接続されます。これにより、ナビゲート可能な完全なDEIナレッジグラフが作成されます。",
+                    cluster: "クラスター形成",
+                    network: "全ネットワーク稼働",
+                    back: "戻る",
+                    next: "次へ",
+                    replay: "リプレイ"
+                },
+                conclusion: {
+                    c1Title: "結論 1：認識論的ローカリゼーション",
+                    c1Body: "グローバルなDEI研究は一枚岩ではありません。西洋は「T3: アイデンティティのレンズ」（人種、ジェンダーの権利など）を好み、個人主義と社会正義の伝統を反映しています。一方、アジア太平洋は「T2: 組織の核心」を好み、集団主義と階層性を反映しています。これは遅れではなく、文化的に実用的な戦略です。",
+                    c2Title: "結論 2：デジタル・ギャップ",
+                    c2Body: "「T5: 新たな課題」（技術と言語のバイアス）は最も小さなトピックです。さらに危険なことに、アルゴリズムや言語的覇権に対して最も脆弱なアジア太平洋地域は、このトピックに関する研究を0%しか生み出していません。これは緊急に埋める必要がある二重のギャップです。",
+                    futureTitle: "今後の方向性",
+                    futureBody: "真のインクルージョンとは、西洋の声をアジアで「複製」することではなく、アジア独自の組織中心的なDEIモデルに「耳を傾け」、それを検証することです。同時に、アジアの研究者は西洋の理論の適用から「グラウンデッド・セオリー」の開発へとシフトし、技術的インクルージョンの研究に緊急に投資する必要があります。"
+                },
+                feedback: {
+                    title: "ご意見をお聞かせください",
+                    desc: "以下のフォームにご記入の上、ご感想、ご質問、ご連絡先をお知らせください。"
+                }
+            }
+        };
+
+        // --- Data Functions (Language Dependent) ---
+        const getPrismaData = (t) => [
+            { step: t.id === 'en' ? "Identification" : "識別 (Identification)", count: 1659, desc: t.id === 'en' ? "Records identified from Scopus database" : "Scopusデータベースから識別された記録", color: "#94a3b8" },
+            { step: t.id === 'en' ? "Screening" : "スクリーニング (Screening)", count: 1547, desc: t.id === 'en' ? "Filtered by year (2015-2025/6)" : "年でフィルタリング (2015-2025/6)", color: "#64748b" },
+            { step: t.id === 'en' ? "Eligibility" : "適格性 (Eligibility)", count: 661, desc: t.id === 'en' ? "Restricted to SSCI journal articles" : "SSCIジャーナル論文に限定", color: "#475569" },
+            { step: t.id === 'en' ? "Inclusion" : "採用 (Inclusion)", count: 534, desc: t.id === 'en' ? "Final sample (Full text available)" : "最終サンプル (全文利用可能)", color: "#0f172a" }
+        ];
+
+        const trendData = [
+            { year: "2015", count: 4 },
+            { year: "2016", count: 6 },
+            { year: "2017", count: 10 },
+            { year: "2018", count: 15 },
+            { year: "2019", count: 21 },
+            { year: "2020", count: 28, event: "COVID-19 & George Floyd" },
+            { year: "2021", count: 37 },
+            { year: "2022", count: 73 },
+            { year: "2023", count: 98 },
+            { year: "2024", count: 151 },
+            { year: "2025/6", count: 100, note: "(until June)" }
+        ];
+
+        const getGeoData = (t) => [
+            { region: t.id === 'en' ? "North America" : "北米", percent: 53.9, articles: 288, color: "#3b82f6" },
+            { region: t.id === 'en' ? "Europe" : "欧州", percent: 30.0, articles: 160, color: "#60a5fa" },
+            { region: t.id === 'en' ? "Asia" : "アジア", percent: 8.2, articles: 44, color: "#f59e0b" },
+            { region: t.id === 'en' ? "Oceania" : "オセアニア", percent: 6.4, articles: 34, color: "#fbbf24" },
+            { region: t.id === 'en' ? "South America" : "南米", percent: 1.1, articles: 6, color: "#cbd5e1" },
+            { region: t.id === 'en' ? "Africa" : "アフリカ", percent: 0.4, articles: 2, color: "#e2e8f0" }
+        ];
+
+        const getTopicData = (t) => [
+            { id: 1, name: t.id === 'en' ? "T1: Sectoral Practice" : "T1: 分野別実践", count: 143, desc: t.id === 'en' ? "Applications in Education, Healthcare, etc." : "教育、医療等における応用", focus: "Americas" },
+            { id: 2, name: t.id === 'en' ? "T2: Organizational Core" : "T2: 組織の核心", count: 142, desc: t.id === 'en' ? "Strategy, Leadership & HR (Asia Focus)" : "戦略、リーダーシップ、人事 (アジアの焦点)", focus: "Asia-Pacific" },
+            { id: 3, name: t.id === 'en' ? "T3: Identity Lens" : "T3: アイデンティティ", count: 119, desc: t.id === 'en' ? "Race, Gender, LGBTQ+ (Europe/West Focus)" : "人種、ジェンダー、LGBTQ+ (欧州/西洋の焦点)", focus: "Europe" },
+            { id: 4, name: t.id === 'en' ? "T4: External Connection" : "T4: 外部との接続", count: 57, desc: t.id === 'en' ? "CSR, Branding & Social Responsibility" : "CSR、ブランディング、社会的責任", focus: "General" },
+            { id: 5, name: t.id === 'en' ? "T5: Emerging Challenges" : "T5: 新たな課題", count: 14, desc: t.id === 'en' ? "Tech, Language & Data Bias (Missing in Asia)" : "技術、言語、データのバイアス (アジアで欠如)", focus: "Gap" }
+        ];
+
+        const getKGSteps = (t) => [
+            { id: 0, title: "1. " + t.logic.step1, desc: t.logic.step1Desc, activeNodes: ["paper1"], activeEdges: [] },
+            { id: 1, title: "2. " + t.logic.step2, desc: t.logic.step2Desc, activeNodes: ["paper1", "MainTopic", "SubTopic"], activeEdges: ["e1", "e2", "e3"] },
+            { id: 2, title: "3. " + t.logic.step3, desc: t.logic.step3Desc, activeNodes: ["paper1", "MainTopic", "SubTopic", "Theory", "Method", "Keyword1", "Keyword2"], activeEdges: ["e1", "e2", "e3", "e4", "e5", "e6", "e7"] },
+            { id: 3, title: "4. " + t.logic.step4, desc: t.logic.step4Desc, activeNodes: ["paper1", "MainTopic", "SubTopic", "Theory", "Method", "Keyword1", "Keyword2", "paper2", "Keyword3"], activeEdges: ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9"] },
+            { id: 4, title: "5. " + t.logic.step5, desc: t.logic.step5Desc, activeNodes: "ALL", activeEdges: "ALL" }
+        ];
+
+        // --- Knowledge Graph Config ---
+        const KG_COLORS = { Paper: "#3b82f6", Topic: "#f2dd22", SubTopic: "#f6d73b", Theory: "#4abd02", Method: "#b802cc", Keyword: "#f03329", Line: "#94a3b8", LineActive: "#3b82f6" };
+        const KG_CORE_NODES = {
+            paper1: { x: 400, y: 320, type: "Paper", label: "A0003", r: 45 },
+            MainTopic: { x: 400, y: 140, type: "Topic", label: "T1/T2...", r: 35 },
+            SubTopic: { x: 600, y: 180, type: "SubTopic", label: "Sub...", r: 25 },
+            Theory: { x: 680, y: 320, type: "Theory", label: "Theory", r: 30 },
+            Method: { x: 620, y: 460, type: "Method", label: "Method", r: 30 },
+            Keyword1: { x: 400, y: 500, type: "Keyword", label: "DEI", r: 20 },
+            Keyword2: { x: 180, y: 460, type: "Keyword", label: "Mkt", r: 20 },
+            paper2: { x: 120, y: 180, type: "Paper", label: "A0007", r: 40 },
+            Keyword3: { x: 60, y: 320, type: "Keyword", label: "Merit", r: 20 }
+        };
+        const KG_CORE_EDGES = [
+            { id: "e1", from: "paper1", to: "MainTopic" }, { id: "e2", from: "MainTopic", to: "SubTopic" }, { id: "e3", from: "paper1", to: "SubTopic" }, { id: "e4", from: "paper1", to: "Theory" }, { id: "e5", from: "paper1", to: "Method" }, { id: "e6", from: "paper1", to: "Keyword1" }, { id: "e7", from: "paper1", to: "Keyword2" }, { id: "e8", from: "paper2", to: "MainTopic", highlight: true }, { id: "e9", from: "paper2", to: "Keyword3" }
+        ];
+        const generateExpansionData = () => {
+            const nodes = {}; const edges = []; const categories = ['Paper', 'Topic', 'Theory', 'Method', 'Keyword'];
+            for (let i = 0; i < 40; i++) {
+                const id = `extra_${i}`; const type = categories[Math.floor(Math.random() * categories.length)];
+                const angle = (i / 40) * 2 * Math.PI; const radius = 250 + Math.random() * 150;
+                nodes[id] = { x: 400 + Math.cos(angle) * radius, y: 300 + Math.sin(angle) * radius, type, label: "", r: type === 'Paper' ? 15 : 8, isExtra: true };
+                edges.push({ id: `ex_edge_${i}`, from: id, to: Object.keys(KG_CORE_NODES)[Math.floor(Math.random() * Object.keys(KG_CORE_NODES).length)], isExtra: true });
+            }
+            return { nodes, edges };
+        };
+        const KG_EXPANSION_DATA = generateExpansionData();
+
+        // --- Icons ---
+        const Layers = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>);
+        const ArrowRight = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>);
+        const RefreshCw = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>);
+        const Sparkles = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/></svg>);
+        const Network = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>);
+        const Languages = ({size=24}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>);
+
+        // --- Sub-Components ---
+
+        const PrismaFlow = ({ langData }) => {
+            const [hovered, setHovered] = useState(null);
+            return (
+                <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">{langData[0].step.split(" ")[0].includes("Methodology") ? langData[0].step : langData === getPrismaData({id:'en'}) ? "Methodology: PRISMA Flow Diagram" : "方法論：PRISMAフロー図"}</h3>
+                    <svg viewBox="0 0 400 400" className="w-full max-w-md h-64">
+                        <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.1" /></filter></defs>
+                        {langData.map((item, index) => {
+                            const y = 20 + index * 90; const width = 300 - index * 40; const x = (400 - width) / 2;
+                            return (
+                                <g key={index} onMouseEnter={() => setHovered(index)} onMouseLeave={() => setHovered(null)} className="cursor-pointer transition-all duration-300">
+                                    <path d={`M ${x} ${y} L ${x + width} ${y} L ${x + width - 20} ${y + 70} L ${x + 20} ${y + 70} Z`} fill={item.color} opacity={hovered === index ? 1 : 0.8} filter="url(#shadow)" />
+                                    <text x="200" y={y + 35} textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">{item.step.split(" (")[0]}</text>
+                                    <text x="200" y={y + 55} textAnchor="middle" fill="white" fontSize="12" opacity="0.9">n = {item.count}</text>
+                                    {index < langData.length - 1 && <line x1="200" y1={y + 70} x2="200" y2={y + 90} stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4" />}
+                                </g>
+                            );
+                        })}
+                    </svg>
+                    <div className="h-16 flex items-center justify-center text-center mt-2">
+                        {hovered !== null ? <p className="text-slate-600 bg-slate-100 px-4 py-2 rounded-lg animate-pulse">{langData[hovered].desc}</p> : <p className="text-slate-400 text-sm">Hover over the chart for details</p>}
+                    </div>
+                </div>
+            );
+        };
+
+        const TrendChart = ({ t }) => {
+            const [activePoint, setActivePoint] = useState(null);
+            const width = 600, height = 300, padding = 40;
+            const maxCount = Math.max(...trendData.map(d => d.count));
+            const xScale = (index) => padding + index * ((width - padding * 2) / (trendData.length - 1));
+            const yScale = (count) => height - padding - (count / maxCount) * (height - padding * 2);
+            const pathD = trendData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(d.count)}`).join(' ');
+
+            return (
+                <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 mt-6">
+                    <h3 className="text-lg font-bold text-slate-800 mb-2">{t.results.trendTitle}</h3>
+                    <p className="text-sm text-slate-500 mb-4">{t.results.trendNote}</p>
+                    <div className="relative overflow-x-auto">
+                        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[500px]">
+                            {[0, 50, 100, 150].map(val => (<g key={val}><line x1={padding} y1={yScale(val)} x2={width - padding} y2={yScale(val)} stroke="#e2e8f0" strokeDasharray="4" /><text x={padding - 10} y={yScale(val) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text></g>))}
+                            <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="3" />
+                            <path d={`${pathD} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`} fill="url(#gradient)" opacity="0.2" />
+                            <defs><linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="white" /></linearGradient></defs>
+                            {trendData.map((d, i) => (
+                                <g key={i} onMouseEnter={() => setActivePoint(d)} onMouseLeave={() => setActivePoint(null)}>
+                                    <circle cx={xScale(i)} cy={yScale(d.count)} r="6" fill={d.year.includes("2020") ? "#ef4444" : "#3b82f6"} stroke="white" strokeWidth="2" className="cursor-pointer hover:r-8 transition-all"/>
+                                    <text x={xScale(i)} y={height - 20} textAnchor="middle" fontSize="10" fill="#64748b" transform={d.year.length > 4 ? `rotate(45, ${xScale(i)}, ${height-20})` : ""}>{d.year}</text>
+                                    {d.year.includes("2020") && <line x1={xScale(i)} y1={yScale(d.count)} x2={xScale(i)} y2={yScale(d.count) - 30} stroke="#ef4444" strokeWidth="1" strokeDasharray="2" />}
+                                </g>
+                            ))}
+                        </svg>
+                        {activePoint && <div className="absolute bg-slate-800 text-white text-xs rounded p-2 pointer-events-none transform -translate-x-1/2 -translate-y-full" style={{ left: xScale(trendData.indexOf(activePoint)) + 'px', top: yScale(activePoint.count) - 10 + 'px' }}><strong>{activePoint.year}</strong>: {activePoint.count}<br/>{activePoint.event && <span className="text-red-300">{activePoint.event}</span>}{activePoint.note && <span className="text-slate-300">{activePoint.note}</span>}</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        const GeoMap = ({ t, langData }) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">{t.results.geoTitle}</h3>
+                    <div className="space-y-4">
+                        {langData.map((item, idx) => (
+                            <div key={idx} className="group">
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className={`font-medium ${item.region.includes("Asia") || item.region.includes("アジア") ? "text-amber-600" : "text-slate-700"}`}>{item.region}</span>
+                                    <span className="text-slate-500">{item.percent}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden relative">
+                                    <div className="h-full transition-all duration-1000 ease-out" style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
+                                </div>
+                                {(item.region.includes("North America") || item.region.includes("北米")) && <p className="text-xs text-slate-400 mt-1 group-hover:text-blue-600 transition-colors">{t.results.geoNote1}</p>}
+                                {(item.region.includes("Asia") || item.region.includes("アジア")) && <p className="text-xs text-slate-400 mt-1 group-hover:text-amber-600 transition-colors font-bold">{t.results.geoNote2}</p>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="p-6 bg-amber-50 rounded-xl border border-amber-200 flex flex-col justify-center items-center text-center">
+                    <div className="mb-4 p-4 bg-white rounded-full shadow-md">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    </div>
+                    <h4 className="text-xl font-bold text-amber-800 mb-2">{t.results.geoKeyFinding}</h4>
+                    <p className="text-amber-900 text-sm leading-relaxed">{t.results.geoBody}</p>
+                </div>
+            </div>
+        );
+
+        const TopicClusters = ({ t, langData }) => {
+            const [selectedTopic, setSelectedTopic] = useState(null);
+            return (
+                <div className="mt-6 p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-800 mb-6">{t.results.topicTitle}</h3>
+                    <div className="flex flex-wrap justify-center gap-4 relative min-h-[300px]">
+                        {langData.map((topic) => {
+                            const isSelected = selectedTopic === topic.id;
+                            const size = Math.max(80, Math.sqrt(topic.count) * 10);
+                            return (
+                                <div key={topic.id} onClick={() => setSelectedTopic(topic.id === selectedTopic ? null : topic.id)} className={`rounded-full flex flex-col items-center justify-center text-center p-2 cursor-pointer transition-all duration-500 shadow-md border-2 ${isSelected ? 'scale-110 z-10 ring-4 ring-offset-2' : 'hover:scale-105 opacity-90'}`} style={{ width: `${size}px`, height: `${size}px`, backgroundColor: topic.id === 2 ? '#fffbeb' : (topic.id === 3 ? '#eff6ff' : '#f8fafc'), borderColor: topic.id === 2 ? '#f59e0b' : (topic.id === 3 ? '#3b82f6' : '#cbd5e1'), color: topic.id === 2 ? '#92400e' : '#1e293b' }}>
+                                    <span className="text-xs font-bold">{topic.name.split(':')[0]}</span>
+                                    {isSelected && <span className="text-[10px] mt-1 animate-fadeIn leading-tight">{topic.name.split(':')[1]}</span>}
+                                    {!isSelected && <span className="text-[9px] mt-1 opacity-60">n={topic.count}</span>}
+                                </div>
+                            );
+                        })}
+                        <div className={`absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm p-4 border-t border-slate-200 transition-all duration-300 transform ${selectedTopic ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
+                            {selectedTopic && <div><h4 className="font-bold text-slate-800">{langData.find(t => t.id === selectedTopic).name}</h4><p className="text-slate-600 text-sm mt-1">{langData.find(t => t.id === selectedTopic).desc}</p><div className="mt-2 inline-block px-2 py-1 bg-slate-100 text-xs rounded text-slate-500">{t.results.focus}: <span className="font-semibold">{langData.find(t => t.id === selectedTopic).focus}</span></div></div>}
+                        </div>
+                    </div>
+                    <div className="mt-4 text-center text-xs text-slate-400">{t.results.topicClick}</div>
+                </div>
+            );
+        };
+
+        // --- KG Components (Same logic, different text) ---
+        const KGNodeShape = ({ type, r, color }) => {
+            if (type === 'Theory') return <rect x={-r} y={-r*0.6} width={r*2} height={r*1.2} rx={6} fill={color} className="drop-shadow-sm" />;
+            if (type === 'Method') return <polygon points={`0,-${r} ${r*0.86},${r*0.5} -${r*0.86},${r*0.5}`} fill={color} className="drop-shadow-sm" />;
+            return <circle r={r} fill={color} className="drop-shadow-sm" />;
+        };
+        const KGPulseRing = ({ r, color }) => (<circle r={r} fill="none" stroke={color} strokeWidth="2" className="animate-pulse-ring-once opacity-0" />);
+        const KGEdgeLine = ({ isActive, isHighlight, isExtra, delay, x1, y1, x2, y2 }) => {
+            const [length, setLength] = useState(0);
+            useEffect(() => { setLength(Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))); }, [x1, y1, x2, y2]);
+            const strokeColor = isHighlight ? KG_COLORS.LineActive : KG_COLORS.Line;
+            const strokeWidth = isHighlight ? 3 : (isExtra ? 0.5 : 1.5);
+            return (<line x1={x1} y1={y1} x2={x2} y2={y2} stroke={strokeColor} strokeWidth={strokeWidth} strokeDasharray={length} strokeDashoffset={isActive ? 0 : length} className="transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)]" style={{ transitionDelay: `${delay}ms`, opacity: isActive ? (isHighlight ? 1 : (isExtra ? 0.3 : 0.4)) : 0 }} />);
+        };
+        const KGNodeItem = ({ id, def, isActive, delay, isKeyNode, isExtra }) => {
+            const color = KG_COLORS[def.type];
+            const style = { transform: isActive ? `translate(${def.x}px, ${def.y}px) scale(${isExtra ? 0.6 : 1})` : `translate(${def.x}px, ${isExtra ? def.y : def.y + 20}px) scale(0)`, opacity: isActive ? (isExtra ? 0.6 : 1) : 0, transitionProperty: 'transform, opacity', transitionDuration: isExtra ? '1000ms' : '600ms', transitionDelay: `${delay}ms` };
+            const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            return (<g style={style}><g style={{ animation: `float 5s ease-in-out infinite ${(hash % 5) * 0.5}s` }}>{isKeyNode && <KGPulseRing r={def.r * 1.5} color={KG_COLORS.Topic} />}<KGNodeShape type={def.type} r={def.r} color={color} />{!isExtra && (<g className="pointer-events-none"><text y={5} textAnchor="middle" fill="white" className={`font-bold ${def.type === 'Paper' ? 'text-sm' : 'text-[10px]'}`}>{def.label}</text>{def.type === 'Paper' && <text y={22} textAnchor="middle" fill="white" fillOpacity="0.8" className="text-[9px] font-medium uppercase tracking-wider">Paper</text>}</g>)}</g></g>);
+        };
+
+        const KnowledgeGraphTab = ({ t, lang }) => {
+            const [step, setStep] = useState(0);
+            const stepsData = getKGSteps({ ...t, id: lang });
+            const currentStepData = stepsData[step];
+            const { displayNodes, displayEdges } = useMemo(() => {
+                let nodes = { ...KG_CORE_NODES }; let edges = [...KG_CORE_EDGES];
+                if (step === 4) { nodes = { ...nodes, ...KG_EXPANSION_DATA.nodes }; edges = [...edges, ...KG_EXPANSION_DATA.edges]; }
+                return { displayNodes: nodes, displayEdges: edges };
+            }, [step]);
+
+            const getNodeState = (id, def) => { if (step === 4) return { isActive: true, delay: def.isExtra ? Math.random() * 500 : 0 }; const isActive = currentStepData.activeNodes.includes(id) || currentStepData.activeNodes === "ALL"; return { isActive, delay: isActive ? Object.keys(KG_CORE_NODES).indexOf(id) * 100 : 0 }; };
+            const getEdgeState = (edge) => { if (step === 4) return { isActive: true, delay: 500 }; return { isActive: currentStepData.activeEdges.includes(edge.id) || currentStepData.activeEdges === "ALL", delay: 300 }; };
+
+            return (
+                <div className="slide-in grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 flex flex-col gap-6 h-full justify-center">
+                        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 relative overflow-hidden transition-all duration-500">
+                            <div className="absolute -right-6 -top-6 opacity-5 transform rotate-12 pointer-events-none"><Layers size={180} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-4"><span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider border border-indigo-100">Step {step + 1} / 5</span></div>
+                                <h2 className="text-3xl font-bold text-slate-900 mb-4 transition-all duration-500">{currentStepData.title}</h2>
+                                <p className="text-slate-600 leading-relaxed text-base min-h-[100px] transition-opacity duration-300">{currentStepData.desc}</p>
+                            </div>
+                            <div className="flex gap-4 mt-8 pt-6 border-t border-slate-100">
+                                <button onClick={() => setStep(s => Math.max(s - 1, 0))} disabled={step === 0} className={`flex-1 py-3.5 px-6 rounded-xl font-semibold text-sm transition-all duration-300 ${step === 0 ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'}`}>{t.logic.back}</button>
+                                <button onClick={() => setStep(s => Math.min(s + 1, 4))} disabled={step === 4} className={`flex-[2] py-3.5 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-indigo-200 ${step === 4 ? 'bg-slate-800 text-slate-400 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>{t.logic.next} <ArrowRight size={18} /></button>
+                            </div>
+                            {step === 4 && (<button onClick={() => setStep(0)} className="w-full mt-4 text-center text-xs text-slate-400 hover:text-indigo-500 flex items-center justify-center gap-1.5 py-2"><RefreshCw size={12} /> {t.logic.replay}</button>)}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-8 h-[500px] lg:h-[600px] bg-slate-100/50 rounded-[2rem] border-4 border-white shadow-2xl relative overflow-hidden">
+                        <div className="absolute inset-0" style={{backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 1px)", backgroundSize: "24px 24px", opacity: 0.5 }} />
+                        {step === 4 && (<div className="absolute inset-0 bg-indigo-500/5 transition-opacity duration-1000 pointer-events-none" />)}
+                        <svg viewBox="0 0 800 600" className="w-full h-full select-none">
+                            <g>{displayEdges.map(e => <KGEdgeLine key={e.id} {...getEdgeState(e)} x1={displayNodes[e.from].x} y1={displayNodes[e.from].y} x2={displayNodes[e.to].x} y2={displayNodes[e.to].y} isHighlight={e.highlight && step >= 3} isExtra={e.isExtra} />)}</g>
+                            <g>{Object.entries(displayNodes).map(([id, def]) => <KGNodeItem key={id} id={id} def={def} {...getNodeState(id, def)} isKeyNode={id === 'MainTopic' && step >= 3} isExtra={def.isExtra} />)}</g>
+                        </svg>
+                        <div className="absolute bottom-6 right-6 flex flex-col gap-2 items-end">
+                            {step === 3 && (<div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-indigo-100 text-xs font-bold text-indigo-600 flex items-center gap-2 animate-bounce-slow"><Sparkles size={14} /><span>{t.logic.cluster}</span></div>)}
+                            {step === 4 && (<div className="bg-indigo-600/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-indigo-500 text-xs font-bold text-white flex items-center gap-2"><Network size={14} /><span>{t.logic.network}</span></div>)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('abstract');
+            const [lang, setLang] = useState('en'); // 'en' or 'jp'
+            const t = TEXT[lang];
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'abstract':
+                        return (
+                            <div className="space-y-6 slide-in">
+                                <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                                    <h2 className="text-2xl font-bold text-indigo-900 mb-3">{t.abstract.title}</h2>
+                                    <h3 className="text-lg text-indigo-700 mb-4">{t.abstract.subtitle}</h3>
+                                    <p className="text-indigo-800 leading-relaxed">{t.abstract.body}</p>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: t.abstract.stats.articles, val: "534" },
+                                        { label: t.abstract.stats.time, val: "2015-2025/6" },
+                                        { label: t.abstract.stats.method, val: "BERTopic" },
+                                        { label: t.abstract.stats.db, val: "Scopus (SSCI)" }
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-4 rounded-lg shadow-sm text-center border border-slate-100">
+                                            <div className="text-slate-500 text-xs uppercase tracking-wider">{stat.label}</div>
+                                            <div className="text-xl font-bold text-slate-800 mt-1">{stat.val}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'method':
+                        return (
+                            <div className="slide-in">
+                                <PrismaFlow langData={getPrismaData({id:lang})} />
+                                <div className="mt-6 p-4 bg-white rounded-xl text-sm text-slate-600 leading-relaxed border border-slate-200">
+                                    <strong className="block mb-2 text-slate-800">{t.method.desc}</strong>
+                                    {t.method.body}
+                                </div>
+                            </div>
+                        );
+                    case 'results':
+                        return (
+                            <div className="slide-in">
+                                <TrendChart t={t} />
+                                <GeoMap t={t} langData={getGeoData({id:lang})} />
+                                <TopicClusters t={t} langData={getTopicData({id:lang})} />
+                            </div>
+                        );
+                    case 'logic':
+                        return <KnowledgeGraphTab t={t} lang={lang} />;
+                    case 'conclusion':
+                        return (
+                            <div className="space-y-6 slide-in">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-2">{t.conclusion.c1Title}</h3>
+                                    <p className="text-slate-600">{t.conclusion.c1Body}</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-2">{t.conclusion.c2Title}</h3>
+                                    <p className="text-slate-600 dangerouslySetInnerHTML={{__html: t.conclusion.c2Body}}">
+                                        {t.conclusion.c2Body.split("0%").map((part, i, arr) => (
+                                            <React.Fragment key={i}>
+                                                {part}
+                                                {i < arr.length - 1 && <strong>0%</strong>}
+                                            </React.Fragment>
+                                        ))}
+                                    </p>
+                                </div>
+                                <div className="bg-slate-800 text-white p-6 rounded-xl text-center">
+                                    <h3 className="text-lg font-bold mb-2">{t.conclusion.futureTitle}</h3>
+                                    <p className="opacity-90">{t.conclusion.futureBody}</p>
+                                </div>
+                            </div>
+                        );
+                    case 'feedback':
+                        return (
+                            <div className="slide-in">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-center">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">{t.feedback.title}</h3>
+                                    <p className="text-slate-600 mb-6">{t.feedback.desc}</p>
+                                    <iframe 
+                                        src="https://docs.google.com/forms/d/e/1FAIpQLSerAGPPhHloB6Jmz6td4iIa7pm_Zbi4i4hrmTKTKqPYv6HdTQ/viewform?embedded=true" 
+                                        width="100%" 
+                                        height="800" 
+                                        frameBorder="0" 
+                                        marginHeight="0" 
+                                        marginWidth="0"
+                                        className="rounded-lg border border-slate-200 bg-slate-50"
+                                    >
+                                        載入中…
+                                    </iframe>
+                                </div>
+                            </div>
+                        );
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen max-w-5xl mx-auto p-4 md:p-8">
+                    <header className="mb-8 flex flex-col md:flex-row justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t.title}</h1>
+                            <p className="text-slate-500 mt-1">{t.subtitle}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-4 mt-4 md:mt-0">
+                            <button 
+                                onClick={() => setLang(l => l === 'en' ? 'jp' : 'en')}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm"
+                            >
+                                <Languages size={16} />
+                                {lang === 'en' ? '日本語に切り替え' : 'Switch to English'}
+                            </button>
+                            <nav className="flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
+                                {[
+                                    { id: 'abstract', label: t.tabs.abstract },
+                                    { id: 'method', label: t.tabs.method },
+                                    { id: 'logic', label: t.tabs.logic, highlight: true },
+                                    { id: 'results', label: t.tabs.results },
+                                    { id: 'conclusion', label: t.tabs.conclusion },
+                                    { id: 'feedback', label: t.tabs.feedback }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                                            activeTab === tab.id 
+                                            ? 'bg-indigo-600 text-white shadow-md' 
+                                            : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                        } ${tab.highlight ? 'border border-indigo-100' : ''}`}
+                                    >
+                                        {tab.highlight && <Network size={14} />}
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </header>
+                    <main className="min-h-[600px]">
+                        {renderContent()}
+                    </main>
+                    <footer className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm">
+                        <p>© 2025/6 Paper Visualization Demo. Generated by AI based on uploaded document.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
