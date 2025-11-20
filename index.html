@@ -211,14 +211,14 @@
         const KG_COLORS = { Paper: "#3b82f6", Topic: "#f2dd22", SubTopic: "#f6d73b", Theory: "#4abd02", Method: "#b802cc", Keyword: "#f03329", Line: "#94a3b8", LineActive: "#3b82f6" };
         const KG_CORE_NODES = {
             paper1: { x: 400, y: 320, type: "Paper", label: "A0003", r: 45 },
-            MainTopic: { x: 400, y: 140, type: "Topic", label: "T1/T2...", r: 35 },
-            SubTopic: { x: 600, y: 180, type: "SubTopic", label: "Sub...", r: 25 },
+            MainTopic: { x: 400, y: 140, type: "Topic", label: "Sectoral Practice", r: 35 },
+            SubTopic: { x: 600, y: 180, type: "SubTopic", label: "Libraries", r: 25 },
             Theory: { x: 680, y: 320, type: "Theory", label: "Theory", r: 30 },
             Method: { x: 620, y: 460, type: "Method", label: "Method", r: 30 },
-            Keyword1: { x: 400, y: 500, type: "Keyword", label: "DEI", r: 20 },
-            Keyword2: { x: 180, y: 460, type: "Keyword", label: "Mkt", r: 20 },
+            Keyword1: { x: 400, y: 500, type: "Keyword", label: "Keyword1", r: 20 },
+            Keyword2: { x: 180, y: 460, type: "Keyword", label: "Keyword2", r: 20 },
             paper2: { x: 120, y: 180, type: "Paper", label: "A0007", r: 40 },
-            Keyword3: { x: 60, y: 320, type: "Keyword", label: "Merit", r: 20 }
+            Keyword3: { x: 60, y: 320, type: "Keyword", label: "Keyword3", r: 20 }
         };
         const KG_CORE_EDGES = [
             { id: "e1", from: "paper1", to: "MainTopic" }, { id: "e2", from: "MainTopic", to: "SubTopic" }, { id: "e3", from: "paper1", to: "SubTopic" }, { id: "e4", from: "paper1", to: "Theory" }, { id: "e5", from: "paper1", to: "Method" }, { id: "e6", from: "paper1", to: "Keyword1" }, { id: "e7", from: "paper1", to: "Keyword2" }, { id: "e8", from: "paper2", to: "MainTopic", highlight: true }, { id: "e9", from: "paper2", to: "Keyword3" }
