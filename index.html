@@ -14,6 +14,15 @@
                         slate: {
                             850: '#1e293b', // Custom dark shade
                         }
+                    },
+                    animation: {
+                        'fadeIn': 'fadeIn 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
                     }
                 }
             }
@@ -22,7 +31,7 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Removed lucide script dependency to avoid conflicts/errors -->
     <style>
         body { font-family: 'Segoe UI', Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
         .slide-in { animation: slideIn 0.5s ease-out; }
@@ -66,6 +75,15 @@
         .animate-flow {
             animation: flowLine 1s linear forwards;
         }
+        
+        /* Notebook Texture for QA Cards */
+        .notebook-texture {
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 100% 24px;
+        }
+        .dark .notebook-texture {
+            background-image: linear-gradient(#334155 1px, transparent 1px);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
@@ -74,12 +92,41 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
+        // --- Custom Icon Components (Replacing Lucide dependency for stability) ---
+        const IconBase = ({ size = 24, className = "", children }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const Lightbulb = (props) => <IconBase {...props}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.4 1.5-3.8 0-3.2-2.6-5.7-5.7-5.7C9 2 6.6 4.6 6.6 8c0 1.4.5 2.8 1.5 3.8.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
+        const MapIcon = (props) => <IconBase {...props}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></IconBase>;
+        const PieChart = (props) => <IconBase {...props}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></IconBase>;
+        const Users = (props) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></IconBase>;
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
+        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>;
+        const Award = (props) => <IconBase {...props}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></IconBase>;
+        const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconBase>;
+        const Layers = (props) => <IconBase {...props}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></IconBase>;
+        const ArrowRight = (props) => <IconBase {...props}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/></IconBase>;
+        const Network = (props) => <IconBase {...props}><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></IconBase>;
+        const Languages = (props) => <IconBase {...props}><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></IconBase>;
+        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></IconBase>;
+        const Cpu = (props) => <IconBase {...props}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></IconBase>;
+        const Moon = (props) => <IconBase {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></IconBase>;
+        const Sun = (props) => <IconBase {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></IconBase>;
+
         // --- Translations Database ---
         const TEXT = {
             en: {
                 title: "DEI Research Visualizer",
                 subtitle: "For demonstration at the 2025 AP Conference",
-                tabs: { abstract: "Abstract", method: "Method", logic: "KG Logic", results: "Results", conclusion: "Conclusion", feedback: "Feedback" },
+                tabs: { abstract: "Abstract", method: "Method", logic: "KG Logic", results: "Results", qa: "FAQ", conclusion: "Conclusion", feedback: "Feedback" },
                 abstract: {
                     title: "Hear Diverse Voices",
                     subtitle: "A Systematic Literature Review Using Computational Approaches to Explore Asia-Pacific Perspectives in Global DEI Research",
@@ -136,6 +183,61 @@
                     next: "Next Step",
                     replay: "Replay Sequence"
                 },
+                qa: {
+                    filters: { all: "All", method: "Methodology", findings: "Findings", discussion: "Discussion" },
+                    items: [
+                        {
+                            id: 1, category: "method",
+                            q: "Why choose BERTopic over traditional LDA?",
+                            a: "Conceptual Complexity: DEI literature uses diverse vocabularies; LDA assumes word independence, missing nuances. Semantic Understanding: BERTopic utilizes BERT embeddings to capture context. Model Stability: Achieved a coherence score of 0.879 and a low unclassified ratio of 11%."
+                        },
+                        {
+                            id: 2, category: "method",
+                            q: "Can combining PRISMA and BERTopic reduce bias?",
+                            a: "Complementary Strengths: PRISMA ensures transparency in retrieval. Reducing Subjectivity: BERTopic lets the algorithm explain \"what the data is discussing\" without pre-defined human categories."
+                        },
+                        {
+                            id: 3, category: "findings",
+                            q: "What is the evidence for \"Localized Topics\"?",
+                            a: "Significant Association (p=.002). Europe focuses on Identity & Rights (T3, 33%). Asia-Pacific focuses on Org. Strategy (T2, 41%). Americas focuses on Sectoral Practice (T1, 36%)."
+                        },
+                        {
+                            id: 4, category: "findings",
+                            q: "Why is T5 (Technology) absent in Asia-Pacific?",
+                            a: "The Data Gap: 0% contribution from Asia-Pacific. Reasons: Concentration on traditional organizational core topics (41%), cultural caution, and barriers for non-native scholars addressing language inequality."
+                        },
+                        {
+                            id: 5, category: "findings",
+                            q: "Does the T2 focus imply Asia is underdeveloped?",
+                            a: "No. It implies a different Cultural Logic (collectivism/hierarchy). It represents a pragmatic, Top-Down, organization-centric DEI model that complements the Western identity-focused model."
+                        },
+                        {
+                            id: 6, category: "method",
+                            q: "How were the 11% outliers handled?",
+                            a: "HDBSCAN naturally classifies low-density docs as outliers. These 59 articles were kept for reference but excluded from the Final Thematic Corpus to ensure interpretability."
+                        },
+                        {
+                            id: 7, category: "findings",
+                            q: "Is Global DEI research a \"Western Monologue\"?",
+                            a: "83.9% of research originates from North America and Europe. Asia contributes only 8.2%. The goal is to use computational methods to make this faint Asia-Pacific voice visible."
+                        },
+                        {
+                            id: 8, category: "discussion",
+                            q: "Why is the Knowledge Graph not public yet?",
+                            a: "Data Completeness: The scope ends in June 2025, requiring updates. Quality Assurance: Interface refinement is ongoing. Plan: Release as an open-source tool for AP scholars."
+                        },
+                        {
+                            id: 9, category: "discussion",
+                            q: "What are the primary limitations?",
+                            a: "Database Bias: Limited to SSCI/Scopus English-only publications. Abstract Analysis: May miss full-text nuances. Geographic Inference: Based on author affiliation, not necessarily study context."
+                        },
+                        {
+                            id: 10, category: "discussion",
+                            q: "Future Directions?",
+                            a: "Grounded Theory: Build theories rooted in Asia-Pacific culture rather than just validating Western ones. Tech Inclusion: Urgently address the T5 gap (AI bias/Language) in the region."
+                        }
+                    ]
+                },
                 conclusion: {
                     c1Title: "Conclusion 1: Epistemological Localization",
                     c1Body: "Global DEI research is not monolithic. The West prefers \"T3: Identity Lens\" (e.g., race, gender rights), reflecting its individualistic and social justice traditions. The Asia-Pacific prefers \"T2: Organizational Core,\" reflecting collectivism and hierarchy. This is not lagging behind, but a culturally pragmatic strategy.",
@@ -152,7 +254,7 @@
             jp: {
                 title: "DEI研究ビジュアライザー",
                 subtitle: "2025年AP Conference のデモ用",
-                tabs: { abstract: "アブストラクト (Abstract)", method: "手法 (Method)", logic: "KGロジック", results: "結果 (Results)", conclusion: "結論 (Conclusion)", feedback: "フィードバック" },
+                tabs: { abstract: "アブストラクト (Abstract)", method: "手法 (Method)", logic: "KGロジック", results: "結果 (Results)", qa: "FAQ", conclusion: "結論 (Conclusion)", feedback: "フィードバック" },
                 abstract: {
                     title: "多様性を聴く (Hear Diverse Voices)",
                     subtitle: "グローバルDEI研究におけるアジア太平洋視点の再発見　コンピュータ支援による系統的文献レビューを通じた",
@@ -208,6 +310,61 @@
                     back: "戻る",
                     next: "次へ",
                     replay: "リプレイ"
+                },
+                qa: {
+                    filters: { all: "すべて", method: "方法論", findings: "発見", discussion: "考察" },
+                    items: [
+                        {
+                            id: 1, category: "method",
+                            q: "なぜ伝統的なLDAではなくBERTopicを選んだのですか？",
+                            a: "概念の複雑性：DEI文献は多様な語彙を使用しますが、LDAは単語の独立性を仮定するため、ニュアンスを見逃します。意味的理解：BERTopicはBERT埋め込みを使用して文脈を捉えます。モデルの安定性：0.879のCoherence Scoreと11%の低い未分類率を達成しました。"
+                        },
+                        {
+                            id: 2, category: "method",
+                            q: "PRISMAとBERTopicの組み合わせはバイアスを減らせますか？",
+                            a: "相互補完的な強み：PRISMAは検索の透明性を確保します。主観性の低減：BERTopicは、事前に定義されたカテゴリなしに、アルゴリズムに「データが何を議論しているか」を説明させます。"
+                        },
+                        {
+                            id: 3, category: "findings",
+                            q: "「トピックの現地化」の証拠は何ですか？",
+                            a: "有意な関連性 (p=.002)。欧州はアイデンティティと権利 (T3, 33%) に焦点を当てています。アジア太平洋は組織戦略 (T2, 41%) に焦点を当てています。米州は分野別実践 (T1, 36%) に焦点を当てています。"
+                        },
+                        {
+                            id: 4, category: "findings",
+                            q: "なぜアジア太平洋地域ではT5（技術）が欠如しているのですか？",
+                            a: "データギャップ：アジア太平洋からの貢献は0%です。理由：伝統的な組織の中核トピックへの集中 (41%)、文化的慎重さ、および言語の不平等を扱う非ネイティブ学者の障壁が考えられます。"
+                        },
+                        {
+                            id: 5, category: "findings",
+                            q: "T2への集中はアジアの後進性を意味しますか？",
+                            a: "いいえ。それは異なる文化的論理（集団主義/階層性）を意味します。これは、西洋のアイデンティティ重視モデルを補完する、実用的でトップダウンの組織中心型DEIモデルを表しています。"
+                        },
+                        {
+                            id: 6, category: "method",
+                            q: "11%の外れ値はどのように処理されましたか？",
+                            a: "HDBSCANは低密度の文書を自然に外れ値として分類します。これら59の記事は参照用に保持されましたが、解釈可能性を確保するために最終的なトピックコーパスからは除外されました。"
+                        },
+                        {
+                            id: 7, category: "findings",
+                            q: "世界のDEI研究は「西洋の独白」ですか？",
+                            a: "研究の83.9%は北米と欧州由来です。アジアの貢献はわずか8.2%です。目的は、計算手法を使用して、この微弱なアジア太平洋の声を見える化することです。"
+                        },
+                        {
+                            id: 8, category: "discussion",
+                            q: "ナレッジグラフはなぜまだ公開されていないのですか？",
+                            a: "データの完全性：範囲は2025年6月で終了しており、更新が必要です。品質保証：インターフェースの改善が進行中です。計画：AP学者向けのオープンソースツールとしてリリース予定です。"
+                        },
+                        {
+                            id: 9, category: "discussion",
+                            q: "主な制限事項は何ですか？",
+                            a: "データベースバイアス：SSCI/Scopusの英語出版物のみ。要旨分析：全文のニュアンスを見逃す可能性があります。地理的推論：著者の所属に基づいており、必ずしも研究文脈を反映していません。"
+                        },
+                        {
+                            id: 10, category: "discussion",
+                            q: "今後の方向性は？",
+                            a: "グラウンデッド・セオリー：西洋の理論を検証するだけでなく、アジア太平洋文化に根ざした理論を構築すること。技術的包摂：地域のT5ギャップ（AIバイアス/言語）に緊急に対処すること。"
+                        }
+                    ]
                 },
                 conclusion: {
                     c1Title: "結論 1：認識論的ローカリゼーション",
@@ -299,19 +456,7 @@
         };
         const KG_EXPANSION_DATA = generateExpansionData();
 
-        // --- Icons ---
-        const Layers = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>);
-        const ArrowRight = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>);
-        const RefreshCw = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>);
-        const Sparkles = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/></svg>);
-        const Network = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>);
-        const Languages = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>);
-        const FileText = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>);
-        const Cpu = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>);
-        const Moon = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>);
-        const Sun = ({size=24, className=""}) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>);
-
-        // --- New BERTopic Visualization Component ---
+        // --- BERTopic Visualization Component ---
         const BertopicVis = ({ t, isDark }) => {
             const [stage, setStage] = useState(0);
 
@@ -612,6 +757,93 @@
             );
         };
 
+        const QASection = ({ t, isDark }) => {
+            const [activeFilter, setActiveFilter] = useState('all');
+
+            const filteredItems = activeFilter === 'all' 
+                ? t.qa.items 
+                : t.qa.items.filter(item => item.category === activeFilter);
+
+            return (
+                <div className="slide-in">
+                    <div className="flex space-x-2 md:space-x-4 mb-6 overflow-x-auto pb-2">
+                        {Object.entries(t.qa.filters).map(([key, label]) => {
+                             let activeColor = 'bg-slate-800 text-white dark:bg-white dark:text-slate-900';
+                             if (key === 'method') activeColor = 'bg-emerald-600 text-white dark:bg-emerald-500';
+                             if (key === 'findings') activeColor = 'bg-indigo-600 text-white dark:bg-indigo-500';
+                             if (key === 'discussion') activeColor = 'bg-rose-600 text-white dark:bg-rose-500';
+                             
+                             return (
+                                <button
+                                    key={key}
+                                    onClick={() => setActiveFilter(key)}
+                                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm flex-shrink-0
+                                        ${activeFilter === key 
+                                            ? `${activeColor} shadow-md` 
+                                            : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                >
+                                    {label}
+                                </button>
+                             );
+                        })}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {filteredItems.map((item) => {
+                            // Style Config based on category
+                            const styleMap = {
+                                method: {
+                                    bgHeader: "bg-emerald-50 dark:bg-emerald-900/20",
+                                    border: "border-emerald-200 dark:border-emerald-800",
+                                    textHeader: "text-emerald-800 dark:text-emerald-300",
+                                    badge: "bg-emerald-500 text-white",
+                                    icon: <BookOpen className="text-emerald-500" size={32} />
+                                },
+                                findings: {
+                                    bgHeader: "bg-indigo-50 dark:bg-indigo-900/20",
+                                    border: "border-indigo-200 dark:border-indigo-800",
+                                    textHeader: "text-indigo-800 dark:text-indigo-300",
+                                    badge: "bg-indigo-500 text-white",
+                                    icon: <Lightbulb className="text-indigo-500" size={32} />
+                                },
+                                discussion: {
+                                    bgHeader: "bg-rose-50 dark:bg-rose-900/20",
+                                    border: "border-rose-200 dark:border-rose-800",
+                                    textHeader: "text-rose-800 dark:text-rose-300",
+                                    badge: "bg-rose-500 text-white",
+                                    icon: <Users className="text-rose-500" size={32} />
+                                }
+                            };
+                            
+                            // Safety Check: Default to 'method' style if category is undefined or invalid
+                            const s = styleMap[item.category] || styleMap['method'];
+
+                            return (
+                                <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col transition-all hover:shadow-xl">
+                                    <div className={`p-4 border-b border-dashed ${s.bgHeader} ${s.border} relative`}>
+                                        <div className="absolute top-3 left-3 opacity-20 dark:opacity-40">{s.icon}</div>
+                                        <div className="relative z-10 ml-8">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block shadow-sm ${s.badge}`}>
+                                                Q{item.id}
+                                            </span>
+                                            <h3 className={`text-base font-bold leading-snug ${s.textHeader}`}>
+                                                {item.q}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 flex-grow bg-white dark:bg-slate-800 notebook-texture relative">
+                                        <div className="relative z-10 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                                            {item.a}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
         // --- KG Components ---
         const KGNodeShape = ({ type, r, color }) => {
             if (type === 'Theory') return <rect x={-r} y={-r*0.6} width={r*2} height={r*1.2} rx={6} fill={color} className="drop-shadow-sm" />;
@@ -741,6 +973,8 @@
                         );
                     case 'logic':
                         return <KnowledgeGraphTab t={t} lang={lang} />;
+                    case 'qa':
+                        return <QASection t={t} isDark={isDark} />;
                     case 'conclusion':
                         return (
                             <div className="space-y-6 slide-in">
@@ -820,7 +1054,8 @@
                                     { id: 'logic', label: t.tabs.logic, highlight: true },
                                     { id: 'results', label: t.tabs.results },
                                     { id: 'conclusion', label: t.tabs.conclusion },
-                                    { id: 'feedback', label: t.tabs.feedback }
+                                    { id: 'feedback', label: t.tabs.feedback },
+                                    { id: 'qa', label: t.tabs.qa }
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
